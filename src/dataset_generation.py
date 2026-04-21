@@ -7,9 +7,6 @@ from torchvision import transforms
 
 class ChestXRayDataset(Dataset):
     def __init__(self, root_dir, transform=None):
-        """
-        root_dir: path to train / test / val directory
-        """
         self.image_paths = []
         self.labels = []
         self.transform = transform
@@ -20,7 +17,6 @@ class ChestXRayDataset(Dataset):
             "PNEUMONIA": 1
         }
 
-        # walk through directory
         for class_name in ["NORMAL", "PNEUMONIA"]:
             class_dir = os.path.join(root_dir, class_name)
 
@@ -45,12 +41,7 @@ class ChestXRayDataset(Dataset):
 
 
 def get_dataloaders(base_path, batch_size=32, num_workers=2):
-    """
-    base_path should be:
-    Documents/Pneumonia-Detection-Under-Imaging-Constraints/data
-    """
-
-    # transforms (good baseline for CNNs)
+    # transforms
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -92,7 +83,7 @@ def get_dataloaders(base_path, batch_size=32, num_workers=2):
 
 
 if __name__ == "__main__":
-    base_path = "../data"  # since script is in src/
+    base_path = "../data" 
 
     train_loader, val_loader, test_loader = get_dataloaders(base_path)
 

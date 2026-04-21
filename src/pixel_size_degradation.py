@@ -8,23 +8,8 @@ from torchvision import transforms
 
 from dataset_generation import get_dataloaders
 
-
-# --------------------------------------------------
-# Resolution degradation transform
-# --------------------------------------------------
 class ResolutionDegradation:
-    """
-    Simulate larger detector pixel size by:
-    1. Downsampling the image
-    2. Upsampling back to original size
-
-    scale_factor < 1.0 means more degradation
-    Example:
-        1.0  -> no degradation
-        0.85 -> mild degradation
-        0.70 -> moderate degradation
-        0.50 -> strong degradation
-    """
+    
     def __init__(self, output_size=(224, 224), scale_factor=1.0,
                  downsample_mode=Image.Resampling.BILINEAR,
                  upsample_mode=Image.Resampling.BILINEAR):
@@ -34,7 +19,6 @@ class ResolutionDegradation:
         self.upsample_mode = upsample_mode
 
     def __call__(self, img):
-        # force to known size first
         img = img.resize(self.output_size, self.downsample_mode)
 
         if self.scale_factor == 1.0:
@@ -53,14 +37,9 @@ class ResolutionDegradation:
         return img
 
 
-# --------------------------------------------------
-# Build transform pipeline
-# --------------------------------------------------
+# transform pipeline
 def build_transform(scale_factor, image_size=(224, 224)):
-    """
-    Builds a transform pipeline that applies
-    resolution degradation before tensor conversion.
-    """
+    
     return transforms.Compose([
         ResolutionDegradation(output_size=image_size, scale_factor=scale_factor),
         transforms.ToTensor(),
@@ -68,18 +47,14 @@ def build_transform(scale_factor, image_size=(224, 224)):
     ])
 
 
-# --------------------------------------------------
-# Create a copy of a dataset with a new transform
-# --------------------------------------------------
+# copy dataset with new transform
 def clone_dataset_with_transform(dataset, new_transform):
     new_dataset = copy.deepcopy(dataset)
     new_dataset.transform = new_transform
     return new_dataset
 
 
-# --------------------------------------------------
-# Main function
-# --------------------------------------------------
+# main function
 def create_resolution_dataloaders(
     base_path,
     batch_size=32,
@@ -87,15 +62,7 @@ def create_resolution_dataloaders(
     image_size=(224, 224),
     num_workers=2
 ):
-    """
-    Uses your existing dataset_generation.py to build the original loaders,
-    then creates new loaders with multiple resolution degradation levels.
-
-    Returns:
-        clean_loaders: dict with train/val/test
-        degraded_loader_sets: dict keyed by degradation name
-    """
-
+    
     if degradation_levels is None:
         degradation_levels = {
             "clean": 1.00,
@@ -104,9 +71,7 @@ def create_resolution_dataloaders(
             "severe": 0.50,
         }
 
-    # ----------------------------------------------
-    # Get original loaders from your existing script
-    # ----------------------------------------------
+    # get original loaders
     train_loader, val_loader, test_loader = get_dataloaders(
         base_path,
         batch_size=batch_size
@@ -160,39 +125,3 @@ def create_resolution_dataloaders(
         }
 
     return clean_loaders, degraded_loader_sets
-
-
-# --------------------------------------------------
-# Example usage
-# --------------------------------------------------
-if __name__ == "__main__":
-    base_path = "/content/Pneumonia-Detection-Under-Imaging-Constraints/data"
-    batch_size = 32
-
-    degradation_levels = {
-        "clean": 1.00,
-        "mild": 0.85,
-        "moderate": 0.70,
-        "severe": 0.50,
-    }
-
-    clean_loaders, degraded_loader_sets = create_resolution_dataloaders(
-        base_path=base_path,
-        batch_size=batch_size,
-        degradation_levels=degradation_levels,
-        image_size=(224, 224),
-        num_workers=2
-    )
-
-    print("Clean dataset sizes:")
-    print("Train:", len(clean_loaders["train"].dataset))
-    print("Val  :", len(clean_loaders["val"].dataset))
-    print("Test :", len(clean_loaders["test"].dataset))
-
-    print("\nDegraded datasets created:")
-    for name, loader_set in degraded_loader_sets.items():
-        print(
-            f"{name:10s} | "
-            f"scale_factor = {loader_set['scale_factor']:.2f} | "
-            f"train size = {len(loader_set['train'].dataset)}"
-        )
